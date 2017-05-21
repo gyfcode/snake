@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Document</title>
+	<link rel="stylesheet" href="css/index.css">
+</head>
+<body>
+	<div class="welcome"></div>
+	<div class="bigbox">
+		<div class="message">
+			<div>
+				<span class="$time">5</span>  秒后进入下一关
+			</div>
+		</div>
+		<h1 class="bigbox-top">JavaScript游戏之贪吃蛇</h1>
+		<div class="bigbox-bottom">
+			<div id='box'></div>
+			<div class="zfs">
+				<p class="start">开  始</p>
+				<p class="qiehuan">暂   停</p>
+				<p class="goback">退   出</p>
+				<p>当前关卡：<span class="now">1</span></p>
+				<p class="number">当前分数：<span id='fenshu'>0</span></p>
+				<p class="prve">上一关 </p>
+				<p class="next">下一关 </p>
+				<p class="sound">静  音</p>
+				<p class="shijian">00:00</p>
+			</div>
+		</div>
+		
+	</div>
+	<div class="tishhi">
+		<ul class="tishhinner">
+			<li>我的天哪，撞到墙了</li>
+			<li><span class="againsss">再来一次</span><span class="backback">返&nbsp;&nbsp;&nbsp;回</span></li>
+		</ul>
+	</div>
+	<audio src="music/snake.mp3" id="audios">
+				您的浏览器不支持音乐播放
+	</audio>
+</body>
+<script src="function.js"></script>
+<script>
+$(function(){
+	
+	function game(changjing,n,m,qiehuan,tishhi,againsss,shijiantime){
+		this.changjing=changjing;//小方块要追加的地方
+		this.n=n;//行
+		this.m=m;//列
+		this.sheArr=[{x:7,y:9},{x:8,y:9},{x:9,y:9}];//蛇的初始位置
+		this.food={x:0,y:0};//食物的初始位置
+		this.newhead={x:0,y:0};//新头的初始位置
+		this.t=0;
+		this.way=39;
+		this.score=0;
+		this.time=600;
+		this.t;
+		this.qiehuan=qiehuan
+		this.tishhi=tishhi
+		this.againsss=againsss
+		this.shijiantime=shijiantime
+		this.num=0;
+		this.shijiant=0;//处理
+		this.number1=1;
+
+
+	}
+	game.prototype={
+		init:function(){
+			this.draw();
+			this.getfood();
+			this.getshe();
+			
+			
+		},
+		play:function(){
+			
+			this.down();
+			var flag=true;
+			var that=this;
+			that.shijiant=setInterval(function(){
+				that.num++;
+				shijiantime.innerHTML=getTime(that.num)
+			},1000)
+			this.qiehuan.onclick=function(){
+				if(flag){
+					clearInterval(that.t);
+					flag=false;
+					this.innerHTML="继续"
+
+
+					clearInterval(that.shijiant);
+
+
+				}else{
+					that.move();
+					flag=true;
+					this.innerHTML="暂停"
+					that.shijiant=setInterval(function(){
+						that.num++;
+						shijiantime.innerHTML=getTime(that.num)
+					},1000)
+
+					
+
+				}
+			}
+
+			
+		},
+		//画小方块
+		draw:function(){
+			var that=this
+			for (var i = 0; i < this.n; i++) {
+				for (var j = 0; j < this.m; j++) {
+					 var div=$("<div>")	;
+					 div.id=j+"-"+i;
+					 that.changjing.appendChild(div)
+				}
+			}
+		},
+		//根据蛇的初始位置，找到相应的div，给其加上类名she
+		getshe:function(){
+			for (var i = 0; i < this.sheArr.length; i++) {
+				$("#"+this.sheArr[i].x+"-"+this.sheArr[i].y).className="she";
+				if(i==this.sheArr.length-1){//让蛇头的类名为 she aa
+					$("#"+this.sheArr[i].x+"-"+this.sheArr[i].y).className="she aa";
+				}
+			}
+		},
+		getfood:function(){
+			//随机取两个数 a和b
+			var a=Math.floor(Math.random()*(this.m));
+			var b=Math.floor(Math.random()*(this.n));
+
+			while (!this.check(a,b)) { //如果 a、b和 蛇的某个一个元素的位置相同 （false） 重新取随机数 直到不同为止
+				var a=Math.floor(Math.random()*(this.m));
+				var b=Math.floor(Math.random()*(this.n));
+			}
+			this.food={x:a,y:b}//把取到的值赋值给food的位置
+			var num=Math.floor(Math.random()*8+1);
+			$("#"+this.food.x+"-"+this.food.y).className="food"+num; //根据food的位置，找到相应的div，给其加上类名food
+			
+		},
+		//查重 
+		check:function(a,b){
+			for (var i = 0; i < this.sheArr.length; i++) {
+				if (a==this.sheArr[i].x&&b==this.sheArr[i].y) {
+					return false;//如果蛇的任何一个元素的位置和a、b相同 返回false
+				}
+			}
+			return true;//如果蛇的任何一个元素的位置都和a、b不相同 返回true
+		},
+		down:function(){
+			var that=this;
+			
+				 that.move(); //让设动
+				document.onkeydown=function(e){//之后的按下
+					var ev=e||window.event;
+					if(ev.keyCode==37||ev.keyCode==38||ev.keyCode==39||ev.keyCode==40){
+						
+						if (Math.abs(ev.keyCode-that.way)==2) {
+							return;
+						}
+						that.way=ev.keyCode;
+					}
+					
+					
+				}
+			// }
+			
+		},
+		move:function(){
+			var that=this;
+			
+			this.move1=function(){
+				var oldhead=that.sheArr[that.sheArr.length-1];//找到旧蛇头，用来计算新的蛇头的位置
+				switch(that.way){
+					case 37:that.newhead={x:oldhead.x-1,y:oldhead.y};//左
+						
+					break;
+					case 38:that.newhead={x:oldhead.x,y:oldhead.y-1};//上
+					
+
+					break;
+					case 39:that.newhead={x:oldhead.x+1,y:oldhead.y};//右
+					
+					break;
+					case 40:that.newhead={x:oldhead.x,y:oldhead.y+1};//下
+					
+					break;
+
+				}
+				//如果超出边界 失败
+				if (that.newhead.x<0||that.newhead.x>that.m-1||that.newhead.y<0||that.newhead.y>that.n-1) {
+					that.num=0;
+					clearInterval(that.t);
+					clearInterval(that.shijiant);
+					that.tishhi.style.display="block";
+					audios.src="music/zhuang.mp3";
+					audios.play();
+					clearInterval(that.shijiantime)
+					//audios.loop="loop";
+					that.againsss.onclick=function(){
+						that.num=0;
+						shijiantime.innerHTML=getTime(that.num);
+						that.tishhi.style.display="none";
+						audios.src="music/snake.mp3";
+						audios.play();
+						for (var i = 0; i < that.sheArr.length; i++) {
+							$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="";
+						}	
+
+						that.sheArr=[];
+						that.sheArr=[{x:7,y:9},{x:8,y:9},{x:9,y:9}];//蛇的初始位置
+						that.getshe();
+						return;
+					}
+
+					$(".backback")[0].onclick=function(){
+						location.reload();
+						return;
+					}
+					return;
+				}
+				//如果蛇撞到自己 失败
+				for (var i = 0; i < that.sheArr.length; i++) {
+					if (that.sheArr[i].x==that.newhead.x&&that.newhead.y==that.sheArr[i].y) {
+						that.num=0;
+						clearInterval(that.t);
+						clearInterval(that.shijiant);
+						that.tishhi.style.display="block";
+						audios.src="music/zhuang.mp3";
+						audios.play();
+						//audios.loop="loop";
+						that.againsss.onclick=function(){
+							that.num=0;	
+							shijiantime.innerHTML=getTime(that.num)
+							that.tishhi.style.display="none";
+							audios.src="music/snake.mp3";
+							audios.play();
+							for (var i = 0; i < that.sheArr.length; i++) {
+								$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="";
+							}	
+
+							that.sheArr=[];
+							that.sheArr=[{x:7,y:9},{x:8,y:9},{x:9,y:9}];//蛇的初始位置
+							that.getshe();
+							return;
+						}
+
+						$(".backback")[0].onclick=function(){
+							location.reload();
+							return;
+						}
+						return;
+					}
+				}
+				if (that.food.x==that.newhead.x&&that.food.y==that.newhead.y) {//如果吃到食物
+				
+					that.sheArr.push(that.newhead);//把新蛇头追加到数组里
+					for(var i=0;i<that.sheArr.length;i++){
+						$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="she";
+						if(i==that.sheArr.length-1){
+							$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="she aa";
+						}
+					}
+
+
+					that.score++;
+					fenshu.innerHTML=that.score;
+
+
+					if(that.score==2*$(".now")[0].innerHTML){
+						that.time=(that.time)*.9;
+						if(that.time==50){
+							that.time=50;
+						}
+						$(".message")[0].style.display="block";	
+						that.score="0"
+						clearInterval(that.t);
+						that.number1++;
+						$(".now")[0].innerHTML=that.number1;
+						for (var i = 0; i < that.sheArr.length; i++) {
+							$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="";
+						}	
+
+						that.sheArr=[];
+						that.sheArr=[{x:7,y:9},{x:8,y:9},{x:9,y:9}];//蛇的初始位置
+						that.getshe();
+
+						var time1=5;
+						$(".message")[0].innerHTML="恭喜您过关，"+time1+" 秒后开始";
+						var t2=setInterval(function(){
+								time1--;
+								if(time1<=0){
+									clearInterval(t2);
+									$(".message")[0].style.display="none";
+									
+									that.move();
+								}
+								$(".message")[0].innerHTML=time1+" 秒后开始";
+								
+
+						},1000)
+
+					}
+
+					that.getfood()
+				}else{//如果没吃到食物
+					that.sheArr.push(that.newhead);//把新蛇头追加到数组里
+					for(var i=0;i<that.sheArr.length;i++){
+						$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="she";
+						if(i==that.sheArr.length-1){
+							$("#"+that.sheArr[i].x+"-"+that.sheArr[i].y).className="she aa";
+						}
+					}
+					var del=that.sheArr.shift();//把蛇尾删除
+					$("#"+del.x+"-"+del.y).className="";//根据蛇尾的位置，找到相应的div，去掉she类名
+				}
+			}
+			this.t=setInterval(that.move1,that.time)
+		}
+
+	}
+
+
+
+	var qiehuan=$('.qiehuan')[0];
+	var tishhi=$('.tishhi')[0];
+	var againsss=$(".againsss")[0];
+	var shijiantime=$('.shijian')[0];
+	var aa=new game(box,15,20,qiehuan,tishhi,againsss,shijiantime);
+	aa.init()
+	$(".prve")[0].onclick=function(e){
+		var ev=e||window.event;
+			if(ev.preventDefault){
+				ev.preventDefault();
+			}else{
+				ev.returnValue=false;
+			}
+		var val2=parseInt($(".now")[0].innerHTML);
+		if(val2<=1){
+			val2=1;
+			alert("已是第一关卡，不能再倒退了")
+			aa.number1=1;
+			return;
+		}
+		$(".now")[0].innerHTML=val2-1;
+		aa.number1=aa.number1-1;
+		aa.time=(aa.time)*1.3;
+	}
+	
+	$(".next")[0].onclick=function(e){
+		var ev=e||window.event;
+			if(ev.preventDefault){
+				ev.preventDefault();
+			}else{
+				ev.returnValue=false;
+			}
+		var val2=parseInt($(".now")[0].innerHTML);
+		$(".now")[0].innerHTML=val2+1;
+		aa.number1=aa.number1+1;
+		aa.time=(aa.time)*.9;
+		if(aa.time<50){
+			aa.time=50;
+			alert("王者关卡开始")
+		}
+	}
+	
+
+
+	//开始
+	
+	$(".start")[0].onclick=function(e){
+		var ev=e||window.event;
+			if(ev.preventDefault){
+				ev.preventDefault();
+			}else{
+				ev.returnValue=false;
+			}
+		
+		aa.play()
+		audios.play();	
+		
+			
+	}
+	//重置
+	$(".goback")[0].onclick=function(e){
+		var ev=e||window.event;
+			if(ev.preventDefault){
+				ev.preventDefault();
+			}else{
+				ev.returnValue=false;
+			}
+		location.reload();
+
+	}
+	
+	$(".welcome")[0].onclick=function(e){
+		var ev=e||window.event;
+			if(ev.preventDefault){
+				ev.preventDefault();
+			}else{
+				ev.returnValue=false;
+			}
+		this.style.display="none"
+	}
+	$(".sound")[0].onclick=function(e){
+		var ev=e||window.event;
+		if(ev.preventDefault){
+			ev.preventDefault();
+			
+		}else{
+			ev.returnValue=false;
+
+		}
+		if(this.innerHTML=="静  音"){
+			this.innerHTML="播  放"
+		}else{ 
+			this.innerHTML="静  音"
+		}
+		if(audios.paused){
+			
+			audios.play();
+
+			
+		}else{
+			
+			audios.pause();
+			
+		}
+		
+			
+	}
+
+	//转化时分秒函数
+		
+	function getTime(time){
+		var m=parseInt(time/60)<=9?'0'+parseInt(time/60):parseInt(time/60);
+		var s=parseInt(time-m*60)<=9?'0'+parseInt(time-m*60):parseInt(time-m*60);
+		return m+':'+s;
+	}
+
+
+	
+})
+
+
+	
+</script>
+</html>
